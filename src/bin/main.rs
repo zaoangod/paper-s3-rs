@@ -31,10 +31,13 @@ esp_bootloader_esp_idf::esp_app_desc!();
 fn main() -> ! {
     esp_println::logger::init_logger_from_env();
 
-    let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
+    let config = esp_hal::Config::default();
+    let config = config.with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
 
-    esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 65536);
+    // Create PSRAM allocator
+    esp_alloc::psram_allocator!(peripherals.PSRAM, esp_hal::psram);
+    // esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 65536);
 
     // -----------------GT911 Touch-----------------
     // Configure the touch INT line as an input early.
