@@ -1,0 +1,7 @@
+.vscode/
+target/
+.qoder/
+.idea/
+
+# Ignore .DS_Store file in mac
+**/.DS_Store
