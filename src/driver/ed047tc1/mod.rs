@@ -19,10 +19,33 @@
 //! | GL16          | 全灰度无闪烁 | 30     | 平滑灰度过渡，无闪烁   |
 //! | WHITE_TO_GL16 | 白底到灰度   | 15     | 从白色背景快速过渡     |
 //! | BLACK_TO_GL16 | 黑底到灰度   | 15     | 从黑色背景快速过渡     |
+//!
+//! # 使用示例
+//!
+//! ```ignore
+//! use paper_s3::driver::ed047tc1::{Ed047tc1, DrawMode, WIDTH, HEIGHT};
+//!
+//! // 创建驱动实例
+//! let mut display = Ed047tc1::new();
+//!
+//! // 清屏为白色
+//! display.clear_white();
+//!
+//! // 绘制一个黑色矩形
+//! display.fill_rect(100, 100, 200, 150, 0x00);
+//!
+//! // 设置绘图模式并刷新
+//! display.set_draw_mode(DrawMode::Gc16);
+//! ```
 
+pub mod ed047tc1;
 pub mod waveform;
 
-pub use self::waveform::{ED047TC1, Waveform, WaveformMode, WaveformPhase};
+pub use self::ed047tc1::{
+    DisplayDriver, DisplayState, Ed047tc1, Error, FrameBuffer, GRAYSCALE_BLACK, GRAYSCALE_WHITE, PinConfig, ROW_BUFFER_SIZE,
+    RowData,
+};
+pub use self::waveform::{ED047TC1, Waveform, WaveformMode, WaveformModeType, WaveformPhase};
 
 /// 显示屏宽度（像素）
 pub const WIDTH: u32 = 540;

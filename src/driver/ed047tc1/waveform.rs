@@ -155,9 +155,9 @@ pub struct WaveformMode {
 #[derive(Debug, Clone, Copy)]
 pub struct WaveformTemperatureInterval {
     /// 最低温度（摄氏度）
-    pub min: i32,
+    pub min: i8,
     /// 最高温度（摄氏度）
-    pub max: i32,
+    pub max: i8,
 }
 
 // ============================================================================
@@ -179,13 +179,10 @@ pub struct WaveformTemperatureInterval {
 pub struct Waveform {
     /// 可用模式数量
     pub number_mode: u8,
-
     /// 温度范围数量
     pub number_temperature_range: u8,
-
     /// 所有可用的波形模式
     pub mode_data: &'static [&'static WaveformMode],
-
     /// 温度区间配置
     pub temperature_interval: &'static [WaveformTemperatureInterval],
 }
@@ -230,7 +227,7 @@ impl Waveform {
     ///
     /// # 说明
     /// 如果没有匹配的温度范围，会回退到第一个范围
-    pub fn get_phases_for_temperature(&self, mode: &WaveformMode, temperature: i32) -> Option<&'static WaveformPhase> {
+    pub fn get_phases_for_temperature(&self, mode: &WaveformMode, temperature: i8) -> Option<&'static WaveformPhase> {
         // 遍历温度区间，找到匹配的范围
         for (i, interval) in self.temperature_interval.iter().enumerate() {
             if temperature >= interval.min && temperature <= interval.max {
@@ -537,7 +534,7 @@ static ED047TC1_MODE17: WaveformMode = WaveformMode {
 // ============================================================================
 
 /// ED047TC1 的温度区间配置
-/// 当前只配置了一个温度范围：20-30°C（室温）
+/// 当前只配置了一个温度范围：20 - 30°C（室温）
 static ED047TC1_TEMPERATURE_INTERVAL: [WaveformTemperatureInterval; 1] = [WaveformTemperatureInterval { min: 20, max: 30 }];
 
 /// ED047TC1 所有可用的波形模式
