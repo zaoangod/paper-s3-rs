@@ -27,6 +27,67 @@
 //! LUT 的格式是 `[相位][源灰度级][4字节打包数据]`。
 
 // ============================================================================
+// 波形模式类型枚举
+// ============================================================================
+
+/// 波形模式类型
+///
+/// 定义了 ED047TC1 支持的所有波形模式，使用枚举替代魔数提升类型安全。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum WaveformModeType {
+    /// DU - 直接更新（黑白快速刷新）
+    /// 适用于文字显示、快速刷新场景
+    Du = 1,
+    /// GC16 - 全灰度带闪烁
+    /// 适用于图片显示、高质量刷新
+    Gc16 = 2,
+    /// GL16 - 全灰度无闪烁
+    /// 适用于渐变显示、平滑过渡
+    Gl16 = 5,
+    /// WHITE_TO_GL16 - 白色背景到灰度
+    /// epdiy 专有波形，适用于已知屏幕为白色的情况
+    WhiteToGl16 = 16,
+    /// BLACK_TO_GL16 - 黑色背景到灰度
+    /// epdiy 专有波形，适用于已知屏幕为黑色的情况
+    BlackToGl16 = 17,
+}
+
+impl WaveformModeType {
+    /// 从 u8 值转换为枚举
+    pub const fn from_u8(value: u8) -> Option<Self> {
+        match value {
+            1 => Some(Self::Du),
+            2 => Some(Self::Gc16),
+            5 => Some(Self::Gl16),
+            16 => Some(Self::WhiteToGl16),
+            17 => Some(Self::BlackToGl16),
+            _ => None,
+        }
+    }
+
+    /// 获取该模式的相位数量
+    pub const fn phase_count(&self) -> u8 {
+        match self {
+            Self::Du => 5,
+            Self::Gc16 | Self::Gl16 => 30,
+            Self::WhiteToGl16 | Self::BlackToGl16 => 15,
+        }
+    }
+
+    /// 获取模式名称
+    pub const fn name(&self) -> &'static str {
+        match self {
+            Self::Du => "DU (Direct Update)",
+            Self::Gc16 => "GC16 (Full Grayscale with Flash)",
+            Self::Gl16 => "GL16 (Full Grayscale No Flash)",
+            Self::WhiteToGl16 => "WHITE_TO_GL16",
+            Self::BlackToGl16 => "BLACK_TO_GL16",
+        }
+    }
+}
+
+// ============================================================================
 // 波形相位结构
 // ============================================================================
 
@@ -130,7 +191,7 @@ pub struct Waveform {
 }
 
 impl Waveform {
-    /// 根据模式类型获取波形模式
+    /// 根据模式类型获取波形模式（使用 u8）
     ///
     /// # 参数
     /// * `mode_type` - 模式类型（1=DU, 2=GC16, 5=GL16, 16=WHITE_TO_GL16, 17=BLACK_TO_GL16）
@@ -139,6 +200,23 @@ impl Waveform {
     /// 找到返回 Some(&WaveformMode)，否则返回 None
     pub fn get_mode(&self, mode_type: u8) -> Option<&'static WaveformMode> {
         self.mode_data.iter().find(|m| m.mode_type == mode_type).copied()
+    }
+
+    /// 根据模式类型枚举获取波形模式（推荐使用）
+    ///
+    /// # 参数
+    /// * `mode_type` - 波形模式类型枚举
+    ///
+    /// # 返回值
+    /// 找到返回 Some(&WaveformMode)，否则返回 None
+    ///
+    /// # 示例
+    /// ```
+    /// use crate::driver::ed047tc1::waveform::{ED047TC1, WaveformModeType};
+    /// let gc16 = ED047TC1.get_mode_by_type(WaveformModeType::Gc16);
+    /// ```
+    pub fn get_mode_by_type(&self, mode_type: WaveformModeType) -> Option<&'static WaveformMode> {
+        self.get_mode(mode_type as u8)
     }
 
     /// 根据温度获取波形相位数据
@@ -163,6 +241,16 @@ impl Waveform {
         }
         // 如果没有匹配，回退到第一个范围
         mode.range_data.first().copied()
+    }
+
+    /// 获取所有可用的模式类型
+    pub fn available_modes(&self) -> impl Iterator<Item = WaveformModeType> + '_ {
+        self.mode_data.iter().filter_map(|m| WaveformModeType::from_u8(m.mode_type))
+    }
+
+    /// 检查是否支持指定的模式类型
+    pub fn supports_mode(&self, mode_type: WaveformModeType) -> bool {
+        self.get_mode_by_type(mode_type).is_some()
     }
 }
 
@@ -477,3 +565,29 @@ pub static ED047TC1: Waveform = Waveform {
     mode_data: &ED047TC1_MODE,                            // 模式数据
     temperature_interval: &ED047TC1_TEMPERATURE_INTERVAL, // 温度区间
 };
+
+// ============================================================================
+// 编译时数据一致性校验
+// ============================================================================
+
+// 校验 Mode 1 数据一致性
+const _: () = assert!(ED047TC1_MODE1_0_TIME.len() == 5, "Mode 1 time array length mismatch");
+const _: () = assert!(ED047TC1_MODE1_0_DATA.len() == 5, "Mode 1 LUT data length mismatch");
+
+// 校验 Mode 2 数据一致性
+const _: () = assert!(ED047TC1_MODE2_0_TIME.len() == 30, "Mode 2 time array length mismatch");
+const _: () = assert!(ED047TC1_MODE2_0_DATA.len() == 30, "Mode 2 LUT data length mismatch");
+
+// 校验 Mode 5 数据一致性（使用 Mode 2 的时间数组）
+const _: () = assert!(ED047TC1_MODE5_0_DATA.len() == 30, "Mode 5 LUT data length mismatch");
+
+// 校验 Mode 16 数据一致性
+const _: () = assert!(ED047TC1_MODE16_0_TIME.len() == 15, "Mode 16 time array length mismatch");
+const _: () = assert!(ED047TC1_MODE16_0_DATA.len() == 15, "Mode 16 LUT data length mismatch");
+
+// 校验 Mode 17 数据一致性
+const _: () = assert!(ED047TC1_MODE17_0_TIME.len() == 15, "Mode 17 time array length mismatch");
+const _: () = assert!(ED047TC1_MODE17_0_DATA.len() == 15, "Mode 17 LUT data length mismatch");
+
+// 校验模式数量一致性
+const _: () = assert!(ED047TC1_MODE.len() == 5, "Mode array length mismatch");
