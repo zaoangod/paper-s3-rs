@@ -15,6 +15,7 @@ use esp_hal::gpio::Pull;
 use esp_hal::gpio::{Input, Pin};
 use esp_hal::i2c::master;
 use esp_hal::main;
+use esp_hal::peripherals::Peripherals;
 use esp_hal::time::{Duration, Instant, Rate};
 use log::info;
 use paper_s3::driver::gt911::gt911;
@@ -31,13 +32,13 @@ esp_bootloader_esp_idf::esp_app_desc!();
 fn main() -> ! {
     esp_println::logger::init_logger_from_env();
 
-    let config = esp_hal::Config::default();
-    let config = config.with_cpu_clock(CpuClock::max());
-    let peripherals = esp_hal::init(config);
+    let config: esp_hal::Config = esp_hal::Config::default();
+    let config: esp_hal::Config = config.with_cpu_clock(CpuClock::max());
+    let peripherals: Peripherals = esp_hal::init(config);
 
     // Create PSRAM allocator
-    esp_alloc::psram_allocator!(peripherals.PSRAM, esp_hal::psram);
-    // esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 65536);
+    // esp_alloc::psram_allocator!(peripherals.PSRAM, esp_hal::psram);
+    esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 65536);
 
     // -----------------GT911 Touch-----------------
     // Configure the touch INT line as an input early.

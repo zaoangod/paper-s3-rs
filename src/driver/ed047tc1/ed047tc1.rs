@@ -154,38 +154,32 @@ pub const GRAYSCALE_WHITE: u8 = 0x0F;
 /// 定义了显示屏与 ESP32-S3 连接的 GPIO 引脚
 #[derive(Debug, Clone, Copy)]
 pub struct PinConfig {
-    /// 数据线 D0-D7 起始引脚
-    pub data_start: u8,
-    /// 时钟引脚
-    pub clk: u8,
-    /// 数据锁存引脚
-    pub stl: u8,
-    /// 行选择时钟引脚
+    /// 数据线0
+    pub data0: u8,
+    /// 数据线1
+    pub data1: u8,
+    /// 数据线2
+    pub data2: u8,
+    /// 数据线3
+    pub data3: u8,
+    /// 数据线4
+    pub data4: u8,
+    /// 数据线5
+    pub data5: u8,
+    /// 数据线6
+    pub data6: u8,
+    /// 数据线7
+    pub data7: u8,
+    /// 行起始脉冲
+    pub xstl: u8,
+    /// 行锁存
+    pub xle: u8,
+    /// 帧起始脉冲
+    pub spv: u8,
+    /// 垂直扫描时钟
     pub ckv: u8,
-    /// 电源使能引脚
-    pub power_enable: u8,
-    /// 模式切换引脚
-    pub mode: u8,
-    /// 起始脉冲引脚
-    pub sph: u8,
-    /// 输出使能引脚
-    pub oe: u8,
-}
-
-impl Default for PinConfig {
-    /// M5Paper S3 的默认引脚配置
-    fn default() -> Self {
-        Self {
-            data_start: 6,    // GPIO6-GPIO13 为数据线
-            clk: 18,          // 时钟
-            stl: 4,           // 数据锁存
-            ckv: 5,           // 行选择时钟
-            power_enable: 38, // 电源使能
-            mode: 39,         // 模式
-            sph: 40,          // 起始脉冲
-            oe: 45,           // 输出使能
-        }
-    }
+    /// 电源控制
+    pub pwr: u8,
 }
 
 // ============================================================================
@@ -361,7 +355,7 @@ pub struct Ed047tc1 {
     /// 当前帧缓冲区
     frame_buffer: FrameBuffer,
     /// 上一帧缓冲区（用于差分刷新）
-    prev_buffer: FrameBuffer,
+    pub prev_buffer: FrameBuffer,
     /// 显示状态
     state: DisplayState,
     /// 当前绘图模式
@@ -379,35 +373,26 @@ impl Ed047tc1 {
     /// 创建新的 ED047TC1 驱动实例
     ///
     /// 使用默认引脚配置和 GC16 绘图模式
-    pub const fn new() -> Self {
+    pub const fn new(config: PinConfig) -> Self {
         Self {
             frame_buffer: FrameBuffer::new(),
             prev_buffer: FrameBuffer::new(),
             state: DisplayState::Uninitialized,
             draw_mode: DrawMode::Gc16,
             temperature: 24, // 默认室温
-            pin_config: PinConfig {
-                data_start: 6,
-                clk: 18,
-                stl: 4,
-                ckv: 5,
-                power_enable: 38,
-                mode: 39,
-                sph: 40,
-                oe: 45,
-            },
+            pin_config: config,
             waveform: &ED047TC1,
         }
     }
 
     /// 使用自定义引脚配置创建驱动实例
-    pub const fn with_pins(config: PinConfig) -> Self {
+    pub const fn with_pin(config: PinConfig) -> Self {
         Self {
             frame_buffer: FrameBuffer::new(),
             prev_buffer: FrameBuffer::new(),
             state: DisplayState::Uninitialized,
             draw_mode: DrawMode::Gc16,
-            temperature: 24,
+            temperature: 24, // 默认室温
             pin_config: config,
             waveform: &ED047TC1,
         }
@@ -540,10 +525,12 @@ impl Ed047tc1 {
         self.prev_buffer.data.copy_from_slice(&self.frame_buffer.data);
     }
 }
-
+#[rustfmt::skip]
 impl Default for Ed047tc1 {
     fn default() -> Self {
-        Self::new()
+        Self::new(PinConfig {
+            data0: 0, data1: 0, data2: 0, data3: 0, data4: 0, data5: 0, data6: 0, data7: 0, xstl: 0, xle: 0, spv: 0, ckv: 0, pwr: 0,
+        })
     }
 }
 
@@ -608,7 +595,7 @@ impl RowData {
     /// * `row` - 行号
     /// * `phase` - 当前相位
     /// * `waveform_phase` - 波形相位数据
-    pub fn build_from_buffers(
+    pub fn build_from_buffer(
         &mut self,
         frame_buffer: &FrameBuffer,
         prev_buffer: &FrameBuffer,

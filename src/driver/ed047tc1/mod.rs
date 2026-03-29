@@ -20,4 +20,5 @@
 //! | WHITE_TO_GL16 | 白底到灰度   | 15     | 从白色背景快速过渡     |
 //! | BLACK_TO_GL16 | 黑底到灰度   | 15     | 从黑色背景快速过渡     |
 pub mod ed047tc1;
+pub mod m5papers3;
 pub mod waveform;
