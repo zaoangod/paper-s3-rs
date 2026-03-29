@@ -15,8 +15,8 @@ pub const TOUCH_STATUS_REGISTER: u16 = 0x814E;
 pub const FIRST_TOUCH_POINT_REGISTER: u16 = 0x814F;
 
 const TOUCH_POINT_ENTRY_LENGTH: usize = 8;
-/// 最大触摸点
-const MAXIMUM_TOUCH: usize = 5;
+/// 最大触摸点，PaperS3 上的 GT911 支持2个触摸点
+const MAXIMUM_TOUCH: usize = 2;
 
 /// 触摸点
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -116,10 +116,7 @@ impl GT911 {
 
     /// Gets multiple stack allocated touch points (0-5 points)
     /// Returns points.len()==0 for release, points.len()>0 for press or move and Err(Error::NotReady) for no data
-    pub fn get_multi_touch<I2C: I2c<Error = E>, E>(
-        &self,
-        i2c: &mut I2C,
-    ) -> Result<[Point; MAXIMUM_TOUCH], Exception<E>> {
+    pub fn get_multi_touch<I2C: I2c<Error = E>, E>(&self, i2c: &mut I2C) -> Result<[Point; MAXIMUM_TOUCH], Exception<E>> {
         let touch_point_count: usize = self.get_touch_point_count(i2c)?;
 
         let mut point_list: [Point; MAXIMUM_TOUCH] = [Point::default(); MAXIMUM_TOUCH];
